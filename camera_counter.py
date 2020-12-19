@@ -11,7 +11,7 @@ xvalues = list()
 motion = list()
 count1 = 0
 count2 = 0
-
+countTotal = 0
 
 def find_majority(k):
     myMap = {}
