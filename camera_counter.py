@@ -79,8 +79,10 @@ while True:
             val, times = find_majority(motion)
             if val == 1 and times >= 15:
                 count1 += 1
+                countTotal += 1
             else:
                 count2 += 1
+                countTotal -= 1
 
         xvalues = list()
         motion = list()
@@ -90,6 +92,8 @@ while True:
     cv2.putText(frame, "In: {}".format(count1), (10, 20),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.putText(frame, "Out: {}".format(count2), (10, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    cv2.putText(frame, "currently inside: {}".format(countTotal), (10, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.imshow("Frame", frame)
     cv2.imshow("Gray", gray)
