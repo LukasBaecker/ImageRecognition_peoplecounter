@@ -15,8 +15,8 @@ avg = None
 video = cv2.VideoCapture("people-capture.mp4")
 xvalues = list()
 motion = list()
-count1 = 0
-count2 = 0
+countIn = 0
+countOut = 0
 countTotal = 0
 
 
@@ -189,6 +189,9 @@ while True:
     frame_resized = cv2.resize(frame_rgb, (width, height))
     input_data = np.expand_dims(frame_resized, axis=0)
 
+    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame_gray = cv2.GaussianBlur(frame_gray, (21, 21), 0)
+
     # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
     if floating_model:
         input_data = (np.float32(input_data) - input_mean) / input_std
@@ -202,17 +205,17 @@ while True:
     # frame = cv2.resize(frame, None, fx=0.5, fy=0.5,
     #                  interpolation=cv2.INTER_AREA)
 
-    cv2.imshow('Input', input_data)
-    gray = cv2.cvtColor(input_data, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    #cv2.imshow('Input', input_data)
+    #gray = cv2.cvtColor(input_data, cv2.COLOR_BGR2GRAY)
+    #gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
     if avg is None:
         print("[INFO] starting background model...")
-        avg = gray.copy().astype("float")
+        avg = frame_gray.copy().astype("float")
         continue
 
-    cv2.accumulateWeighted(gray, avg, 0.5)
-    frameDelta = cv2.absdiff(gray, cv2.convertScaleAbs(avg))
+    cv2.accumulateWeighted(frame_gray, avg, 0.5)
+    frameDelta = cv2.absdiff(frame_gray, cv2.convertScaleAbs(avg))
     thresh = cv2.threshold(frameDelta, 5, 255, cv2.THRESH_BINARY)[1]
     thresh = cv2.dilate(thresh, None, iterations=2)
     (cnts, _) = cv2.findContours(
@@ -240,14 +243,16 @@ while True:
         if (no_x > 5):
             val, times = find_majority(motion)
             if val == 1 and times >= 15:
-                count1 += 1
+                countIn += 1
                 countTotal += 1
             else:
-                count2 += 1
-                countTotal -= 1
+                countOut += 1
+                if countTotal > 0:
+                    countTotal -= 1
 
         xvalues = list()
         motion = list()
+
     ######
     ######
 
@@ -306,11 +311,11 @@ while True:
 
     cv2.line(frame, (260, 0), (260, 480), (0, 255, 0), 2)
     cv2.line(frame, (420, 0), (420, 480), (0, 255, 0), 2)
-    cv2.putText(frame, "In: {}".format(count1), (10, 20),
+    cv2.putText(frame, "In: {}".format(countIn), (10, 420),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-    cv2.putText(frame, "Out: {}".format(count2), (10, 40),
+    cv2.putText(frame, "Out: {}".format(countOut), (10, 440),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-    cv2.putText(frame, "currently inside: {}".format(countTotal), (10, 40),
+    cv2.putText(frame, "currently inside: {}".format(countTotal), (10, 460),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.imshow("Frame", frame)
     cv2.imshow("Gray", gray)
