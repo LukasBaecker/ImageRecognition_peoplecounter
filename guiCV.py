@@ -49,22 +49,30 @@ class App:
         self.vid = MyVideoCapture(self.video_source)
         # Create a canvas that can fit the above video source size
         self.canvas = tkinter.Canvas(window, width = self.vid.width, height = self.vid.height)
-        self.canvas.pack()
+        self.canvas.grid(row=0,column=0, columnspan=1, rowspan=4)
         # Button that lets the user take a snapshot
         self.btn_snapshot=tkinter.Button(window, text="Snapshot", width=50, command=self.snapshot)
-        self.btn_snapshot.pack(anchor=tkinter.CENTER, expand=True)
+        self.btn_snapshot.grid(row=4,column=0)
+        #In: labels and buttons
         self.labelIn=tkinter.Label(window,text= "In: "+str(countIn),bg='gold',fg='blue')
-        self.labelIn.place(x=5,y=5)
+        self.labelIn.grid(row=0,column=1)
+        self.btn_correctInPlus=tkinter.Button(window, text="+", command=self.countIn)
+        self.btn_correctInPlus.grid(row=1,column=1)
+        self.btn_correctInMinus=tkinter.Button(window, text="-", command=self.correctInMinus)
+        self.btn_correctInMinus.grid(row=2,column=1)
+        #Out: labels and buttons
         self.labelOut=tkinter.Label(window,text= "Out: "+str(countOut),bg='gold',fg='blue')
-        self.labelOut.place(x=5,y=40)
+        self.labelOut.grid(row=0,column=2)
+        self.btn_correctOutPlus=tkinter.Button(window, text="+", command=self.countOut)
+        self.btn_correctOutPlus.grid(row=1,column=2)
+        self.btn_correctOutMinus=tkinter.Button(window, text="-", command=self.correctOutMinus)
+        self.btn_correctOutMinus.grid(row=2,column=2)
+        #currently In: labels and buttons
         self.labelCurrentIn=tkinter.Label(window,text= "currently inside: "+str(countCurrentIn),bg='gold',fg='blue')
-        self.labelCurrentIn.place(x=5,y=75)
-        self.btn_countIn=tkinter.Button(window, text="+", width=50, command=self.countIn)
-        self.btn_countIn.pack(anchor=tkinter.CENTER, expand=True)
-        self.btn_countOut=tkinter.Button(window, text="-", width=50, command=self.countOut)
-        self.btn_countOut.pack(anchor=tkinter.CENTER, expand=True)
+        self.labelCurrentIn.grid(row=0,column=3, rowspan=3)
+        #Resetbutton
         self.btn_reset=tkinter.Button(window, text="Reset", width=50, command=self.resetNumbers)
-        self.btn_reset.pack(anchor=tkinter.CENTER, expand=True)
+        self.btn_reset.grid(row=3,column=1, columnspan=3, rowspan=1)
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 5
         self.update()
@@ -73,14 +81,22 @@ class App:
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
         if ret:
-            cv2.imwrite("frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            cv2.imwrite("./saved_pictures/frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     def countIn(self):
         global countIn
         countIn += 1
         self.labelIn.config(text="In: "+str(countIn))
+    def correctInMinus(self):
+        global countIn
+        countIn -= 1
+        self.labelIn.config(text="In: "+str(countIn))        
     def countOut(self):
         global countOut
         countOut += 1
+        self.labelOut.config(text="Out: "+str(countOut))
+    def correctOutMinus(self):
+        global countOut
+        countOut -= 1
         self.labelOut.config(text="Out: "+str(countOut))
     def resetNumbers(self):
         global countIn
@@ -144,14 +160,15 @@ class App:
                 print(motion)
                 val, times = find_majority(motion)
                 print(val)
+                #self.snapshot()
                 if val == 1 and times >= 15:
-                    countIn += 1
+                    self.countIn()
                     self.labelIn.config(text="In: "+str(countIn))
                     countCurrentIn += 1
                     self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
                     self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
                 else:
-                    countOut += 1
+                    self.countOut()
                     self.labelOut.config(text="Out: "+str(countOut))
                     if (countCurrentIn >0):
                         countCurrentIn -= 1
