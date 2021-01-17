@@ -1,15 +1,21 @@
 import tkinter
 import cv2
+import csv
 from PIL import Image
 from PIL import ImageTk
 import time
 
 avg = None
-video = cv2.VideoCapture("people-capture.mp4")
 xvalues = list()
 motion = list()
-count1 = 0
-count2 = 0
+countIn = 0
+countOut = 0
+countCurrentIn = 0
+
+#with open('SavedVisitorNumbers.csv', mode='w') as csv_file:
+ #   fieldnames = ['Date', 'Time', 'Visitors']
+  #  writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
 
 def find_majority(k):
     myMap = {}
@@ -29,6 +35,13 @@ def find_majority(k):
 class App:
     def __init__(self, window, window_title, video_source=0):
         
+        global countIn
+        global countOut
+        global countCurrentIn
+        self.csv_file= open('./saved_data/SavedVisitorNumbers_'+time.strftime("%d-%m-%Y")+'.csv', mode='w')
+        self.fieldnames = ['Date', 'Time', 'Visitors']
+        self.writer = csv.DictWriter(self.csv_file, fieldnames=self.fieldnames)
+        self.writer.writeheader()
         self.window = window
         self.window.title(window_title)
         self.video_source = video_source
@@ -40,6 +53,18 @@ class App:
         # Button that lets the user take a snapshot
         self.btn_snapshot=tkinter.Button(window, text="Snapshot", width=50, command=self.snapshot)
         self.btn_snapshot.pack(anchor=tkinter.CENTER, expand=True)
+        self.labelIn=tkinter.Label(window,text= "In: "+str(countIn),bg='gold',fg='blue')
+        self.labelIn.place(x=5,y=5)
+        self.labelOut=tkinter.Label(window,text= "Out: "+str(countOut),bg='gold',fg='blue')
+        self.labelOut.place(x=5,y=40)
+        self.labelCurrentIn=tkinter.Label(window,text= "currently inside: "+str(countCurrentIn),bg='gold',fg='blue')
+        self.labelCurrentIn.place(x=5,y=75)
+        self.btn_countIn=tkinter.Button(window, text="+", width=50, command=self.countIn)
+        self.btn_countIn.pack(anchor=tkinter.CENTER, expand=True)
+        self.btn_countOut=tkinter.Button(window, text="-", width=50, command=self.countOut)
+        self.btn_countOut.pack(anchor=tkinter.CENTER, expand=True)
+        self.btn_reset=tkinter.Button(window, text="Reset", width=50, command=self.resetNumbers)
+        self.btn_reset.pack(anchor=tkinter.CENTER, expand=True)
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 5
         self.update()
@@ -49,12 +74,32 @@ class App:
         ret, frame = self.vid.get_frame()
         if ret:
             cv2.imwrite("frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    def countIn(self):
+        global countIn
+        countIn += 1
+        self.labelIn.config(text="In: "+str(countIn))
+    def countOut(self):
+        global countOut
+        countOut += 1
+        self.labelOut.config(text="Out: "+str(countOut))
+    def resetNumbers(self):
+        global countIn
+        global countOut
+        global countCurrentIn
+        countIn = 0
+        self.labelIn.config(text="In: "+str(countIn))
+        countOut = 0
+        self.labelOut.config(text="Out: "+str(countOut))
+        countCurrentIn = 0
+        self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
     def update(self):
         global avg
         global xvalues
         global motion
-        global count1
-        global count2
+        global countIn
+        global countOut
+        global countCurrentIn
+        #global writer
         
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
@@ -100,9 +145,18 @@ class App:
                 val, times = find_majority(motion)
                 print(val)
                 if val == 1 and times >= 15:
-                    count1 += 1
+                    countIn += 1
+                    self.labelIn.config(text="In: "+str(countIn))
+                    countCurrentIn += 1
+                    self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
+                    self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
                 else:
-                    count2 += 1
+                    countOut += 1
+                    self.labelOut.config(text="Out: "+str(countOut))
+                    if (countCurrentIn >0):
+                        countCurrentIn -= 1
+                        self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
+                    self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
 
             xvalues = list()
             motion = list()
@@ -141,6 +195,8 @@ class MyVideoCapture:
     def __del__(self):
         if self.vid.isOpened():
             self.vid.release()
+            
+
 
 # Create a window and pass it to the Application object
 App(tkinter.Tk(), "Tkinter and OpenCV")
