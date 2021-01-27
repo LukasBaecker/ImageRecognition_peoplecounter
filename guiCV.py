@@ -11,11 +11,11 @@ motion = list()
 countIn = 0
 countOut = 0
 countCurrentIn = 0
-
+countDayTotal = 0
 #with open('SavedVisitorNumbers.csv', mode='w') as csv_file:
  #   fieldnames = ['Date', 'Time', 'Visitors']
   #  writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-
+OptionList = ["from left to right", "from right to left", "from up to down", "from down to up"]
 
 def find_majority(k):
     myMap = {}
@@ -38,6 +38,7 @@ class App:
         global countIn
         global countOut
         global countCurrentIn
+        global OptionList
         self.csv_file= open('./saved_data/SavedVisitorNumbers_'+time.strftime("%d-%m-%Y")+'.csv', mode='w')
         self.fieldnames = ['Date', 'Time', 'Visitors']
         self.writer = csv.DictWriter(self.csv_file, fieldnames=self.fieldnames)
@@ -69,7 +70,20 @@ class App:
         self.btn_correctOutMinus.grid(row=2,column=2)
         #currently In: labels and buttons
         self.labelCurrentIn=tkinter.Label(window,text= "currently inside: "+str(countCurrentIn),bg='gold',fg='blue')
-        self.labelCurrentIn.grid(row=0,column=3, rowspan=3)
+        self.labelCurrentIn.grid(row=0,column=3)
+        self.btn_correctCurrentlyPlus=tkinter.Button(window, text="+", command=self.correctCurrentlyPlus)
+        self.btn_correctCurrentlyPlus.grid(row=1,column=3)
+        self.btn_correctCurrentlyMinus=tkinter.Button(window, text="-", command=self.correctCurrentlyMinus)
+        self.btn_correctCurrentlyMinus.grid(row=2,column=3)
+        #selection of direciton
+        self.variable = tkinter.StringVar(window)
+        self.variable.set(OptionList[0])
+        self.opt = tkinter.OptionMenu(window, self.variable, *OptionList)
+        self.labelDirection=tkinter.Label(window,text= "change the direction for entering: ",bg='gold',fg='blue')
+        self.labelDirection.grid(row=0,column=4)
+        self.opt.config(font=('Helvetica', 12))
+        self.opt.grid(row=1,column=4)
+ 
         #Resetbutton
         self.btn_reset=tkinter.Button(window, text="Reset", width=50, command=self.resetNumbers)
         self.btn_reset.grid(row=3,column=1, columnspan=3, rowspan=1)
@@ -98,6 +112,14 @@ class App:
         global countOut
         countOut -= 1
         self.labelOut.config(text="Out: "+str(countOut))
+    def correctCurrentlyPlus(self):
+        global countCurrentIn
+        countCurrentIn += 1
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
+    def correctCurrentlyMinus(self):
+        global countCurrentIn
+        countCurrentIn -= 1
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
     def resetNumbers(self):
         global countIn
         global countOut
@@ -115,8 +137,8 @@ class App:
         global countIn
         global countOut
         global countCurrentIn
-        #global writer
-        
+        global OptionList
+        OptionList = ["from left to right", "from right to left", "from up to down", "from down to up"]
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
         
@@ -141,27 +163,40 @@ class App:
         for c in cnts:
             if cv2.contourArea(c) < 5000:
                 continue
-            (x, y, w, h) = cv2.boundingRect(c)
-            xvalues.append(x)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
-            flag = False
-            
+            if (self.variable.get() == OptionList[0] or self.variable.get() == OptionList[1]):
+                (x, y, w, h) = cv2.boundingRect(c)
+                xvalues.append(x)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                flag = False
+            else:
+                (x, y, w, h) = cv2.boundingRect(c)
+                xvalues.append(y)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                flag = False
 
         no_x = len(xvalues)
         if (no_x > 2):
-            difference = xvalues[no_x - 1] - xvalues[no_x - 2]
-            if(difference > 0):
-                motion.append(1)
+            if (self.variable.get() == OptionList[0] or self.variable.get() == OptionList[2]):
+                difference = xvalues[no_x - 1] - xvalues[no_x - 2]
+                if(difference > 0):
+                    motion.append(1)
+                else:
+                    motion.append(0)
             else:
-                motion.append(0)
+                difference = xvalues[no_x - 1] - xvalues[no_x - 2]
+                if(difference < 0):
+                    motion.append(1)
+                else:
+                    motion.append(0)    
 
         if flag is True:
             if (no_x > 5):
                 print(motion)
                 val, times = find_majority(motion)
                 print(val)
+                print(times)
                 #self.snapshot()
-                if val == 1 and times >= 15:
+                if val == 1 and times >= 10:
                     self.countIn()
                     self.labelIn.config(text="In: "+str(countIn))
                     countCurrentIn += 1
@@ -186,7 +221,9 @@ class App:
 class MyVideoCapture:
     def __init__(self, video_source=0):
         # Open the video source
+        #video_source = cv2.rotate(video_source, cv2.ROTATE_90_CLOCKWISE)
         self.vid = cv2.VideoCapture(video_source)
+        
         if not self.vid.isOpened():
             raise ValueError("Unable to open video source", video_source)
 
