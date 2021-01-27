@@ -1,10 +1,20 @@
 import tkinter
+import RPi.GPIO as GPIO
+from time import sleep
 import cv2
 import csv
 from PIL import Image
 from PIL import ImageTk
 import time
+#Disable warnings (optional)
+GPIO.setwarnings(False)
+#Select GPIO mode
+GPIO.setmode(GPIO.BCM)
+#Set buzzer - pin 23 as output
+buzzer=23 
+GPIO.setup(buzzer,GPIO.OUT)
 
+#varibles for counting
 avg = None
 xvalues = list()
 motion = list()
@@ -12,6 +22,7 @@ countIn = 0
 countOut = 0
 countCurrentIn = 0
 countDayTotal = 0
+maximumValue = 10
 #with open('SavedVisitorNumbers.csv', mode='w') as csv_file:
  #   fieldnames = ['Date', 'Time', 'Visitors']
   #  writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -39,6 +50,7 @@ class App:
         global countOut
         global countCurrentIn
         global OptionList
+        global maximumValue
         self.csv_file= open('./saved_data/SavedVisitorNumbers_'+time.strftime("%d-%m-%Y")+'.csv', mode='w')
         self.fieldnames = ['Date', 'Time', 'Visitors']
         self.writer = csv.DictWriter(self.csv_file, fieldnames=self.fieldnames)
@@ -54,43 +66,61 @@ class App:
         # Button that lets the user take a snapshot
         self.btn_snapshot=tkinter.Button(window, text="Snapshot", width=50, command=self.snapshot)
         self.btn_snapshot.grid(row=4,column=0)
-        #In: labels and buttons
-        self.labelIn=tkinter.Label(window,text= "In: "+str(countIn),bg='gold',fg='blue')
-        self.labelIn.grid(row=0,column=1)
-        self.btn_correctInPlus=tkinter.Button(window, text="+", command=self.countIn)
-        self.btn_correctInPlus.grid(row=1,column=1)
-        self.btn_correctInMinus=tkinter.Button(window, text="-", command=self.correctInMinus)
-        self.btn_correctInMinus.grid(row=2,column=1)
-        #Out: labels and buttons
-        self.labelOut=tkinter.Label(window,text= "Out: "+str(countOut),bg='gold',fg='blue')
-        self.labelOut.grid(row=0,column=2)
-        self.btn_correctOutPlus=tkinter.Button(window, text="+", command=self.countOut)
-        self.btn_correctOutPlus.grid(row=1,column=2)
-        self.btn_correctOutMinus=tkinter.Button(window, text="-", command=self.correctOutMinus)
-        self.btn_correctOutMinus.grid(row=2,column=2)
         #currently In: labels and buttons
         self.labelCurrentIn=tkinter.Label(window,text= "currently inside: "+str(countCurrentIn),bg='gold',fg='blue')
-        self.labelCurrentIn.grid(row=0,column=3)
-        self.btn_correctCurrentlyPlus=tkinter.Button(window, text="+", command=self.correctCurrentlyPlus)
-        self.btn_correctCurrentlyPlus.grid(row=1,column=3)
-        self.btn_correctCurrentlyMinus=tkinter.Button(window, text="-", command=self.correctCurrentlyMinus)
-        self.btn_correctCurrentlyMinus.grid(row=2,column=3)
+        self.labelCurrentIn.grid(row=0,column=1, columnspan=2)
+        #In: labels and buttons
+        self.btn_correctInPlus=tkinter.Button(window, text="+", command=self.countIn)
+        self.btn_correctInPlus.grid(row=1,column=1)
+        #Out: labels and buttons
+        self.btn_correctOutPlus=tkinter.Button(window, text="-", command=self.countOut)
+        self.btn_correctOutPlus.grid(row=1,column=2)
         #selection of direciton
         self.variable = tkinter.StringVar(window)
         self.variable.set(OptionList[0])
         self.opt = tkinter.OptionMenu(window, self.variable, *OptionList)
         self.labelDirection=tkinter.Label(window,text= "change the direction for entering: ",bg='gold',fg='blue')
-        self.labelDirection.grid(row=0,column=4)
+        self.labelDirection.grid(row=0,column=3)
         self.opt.config(font=('Helvetica', 12))
-        self.opt.grid(row=1,column=4)
- 
+        self.opt.grid(row=1,column=3)
+        #that was not a human
+        self.btn_reset=tkinter.Button(window, text="That one thing wasn't a human being... coming in.", width=50, command=self.noHumanComingIn)
+        self.btn_reset.grid(row=2,column=1, columnspan=2, rowspan=1)
+        self.btn_reset=tkinter.Button(window, text="...leaving", width=50, command=self.noHumanLeaving)
+        self.btn_reset.grid(row=2,column=3, columnspan=1, rowspan=1)
+        #maxNumber
+        self.maximumValueLabel = tkinter.Label(window, text="Current Maximum Number is "+str(maximumValue) +". Do you want to change?")
+        self.maximumValueLabel.grid(row=3, column=1)
+        self.enter = tkinter.Entry(window)
+        self.enter.grid(row=3, column=2)
+        tkinter.Button(window, text='Set Maximum Number', command=self.setMaximum).grid(row=3, column=3)
         #Resetbutton
         self.btn_reset=tkinter.Button(window, text="Reset", width=50, command=self.resetNumbers)
-        self.btn_reset.grid(row=3,column=1, columnspan=3, rowspan=1)
+        self.btn_reset.grid(row=4,column=1, columnspan=2, rowspan=1)
+        #show total number
+        self.labelIn=tkinter.Label(window,text= "Todays visitors: "+str(countIn),bg='gold',fg='blue')
+        self.labelIn.grid(row=4,column=3)
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 5
         self.update()
         self.window.mainloop()
+    def noHumanComingIn(self):
+        global countIn
+        global countCurrentIn
+        countIn -= 1
+        countCurrentIn -= 1
+        self.labelIn.config(text="Todays visitors: "+str(countIn))
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
+    def noHumanLeaving(self):
+        global countOut
+        global countCurrentIn
+        countOut -= 1
+        countCurrentIn += 1
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))  
+    def setMaximum(self):
+        global maximumValue
+        maximumValue = int(self.enter.get())
+        self.maximumValueLabel.config(text="Current Maximum Number is "+str(maximumValue) +". Do you want to change?") 
     def snapshot(self):
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
@@ -98,20 +128,18 @@ class App:
             cv2.imwrite("./saved_pictures/frame-" + time.strftime("%d-%m-%Y-%H-%M-%S") + ".jpg", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     def countIn(self):
         global countIn
+        global countCurrentIn    
         countIn += 1
-        self.labelIn.config(text="In: "+str(countIn))
-    def correctInMinus(self):
-        global countIn
-        countIn -= 1
-        self.labelIn.config(text="In: "+str(countIn))        
+        countCurrentIn += 1
+        self.labelIn.config(text="Todays visitors: "+str(countIn))
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))   
     def countOut(self):
         global countOut
+        global countCurrentIn
         countOut += 1
-        self.labelOut.config(text="Out: "+str(countOut))
-    def correctOutMinus(self):
-        global countOut
-        countOut -= 1
-        self.labelOut.config(text="Out: "+str(countOut))
+        if (countCurrentIn >0):
+            countCurrentIn -= 1
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))  
     def correctCurrentlyPlus(self):
         global countCurrentIn
         countCurrentIn += 1
@@ -124,10 +152,8 @@ class App:
         global countIn
         global countOut
         global countCurrentIn
-        countIn = 0
-        self.labelIn.config(text="In: "+str(countIn))
-        countOut = 0
-        self.labelOut.config(text="Out: "+str(countOut))
+        self.labelIn.config(text="Todays visitors: "+str(countIn))
+        countOut = countIn
         countCurrentIn = 0
         self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
     def update(self):
@@ -138,7 +164,16 @@ class App:
         global countOut
         global countCurrentIn
         global OptionList
+        global buzzer
+        global maximumValue
         OptionList = ["from left to right", "from right to left", "from up to down", "from down to up"]
+        
+        if (countCurrentIn > maximumValue):
+            GPIO.output(buzzer,GPIO.HIGH)
+            sleep(0.5) # Delay in seconds
+            GPIO.output(buzzer,GPIO.LOW)
+            sleep(0.5)
+        
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
         
