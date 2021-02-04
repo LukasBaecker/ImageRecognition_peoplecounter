@@ -1,0 +1,16 @@
+#Setting up the Sensebox
+
+senseBox_id: addYourSenseboxIdHere
+total_num_people_id: addYourSensorIdHere
+current_people_id: addYourSensorIdHere
+
+#Setting up the initial value for maximum numbers of people allowed to be in at the same time
+#default is 10 - change it to your needs
+
+initial_maximum_personnumber: 10
+
+#Setting up the initial value of people that are currently inside the store/room/building
+#when starting the script
+#default 0
+
+initial_current_inside: 0
