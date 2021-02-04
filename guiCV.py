@@ -1,3 +1,4 @@
+import yaml
 import tkinter
 import RPi.GPIO as GPIO
 from time import sleep
@@ -6,13 +7,23 @@ import csv
 from PIL import Image
 from PIL import ImageTk
 import time
+import requests
+import json
+#load env variables from yaml file
+with open(r'setupCVGeo.yaml') as file:
+    senseboxVars = yaml.load(file, Loader=yaml.FullLoader)
+
 #Disable warnings (optional)
+
 GPIO.setwarnings(False)
 #Select GPIO mode
 GPIO.setmode(GPIO.BCM)
 #Set buzzer - pin 23 as output
 buzzer=23 
 GPIO.setup(buzzer,GPIO.OUT)
+#opensensemap setup
+headers = {'content-type': 'application/json'}
+url = 'https://api.opensensemap.org/boxes/'+senseboxVars['senseBox_id']+'/data'
 
 #varibles for counting
 avg = None
@@ -21,7 +32,6 @@ motion = list()
 countIn = 0
 countOut = 0
 countCurrentIn = 0
-countDayTotal = 0
 maximumValue = 10
 #with open('SavedVisitorNumbers.csv', mode='w') as csv_file:
  #   fieldnames = ['Date', 'Time', 'Visitors']
@@ -45,9 +55,8 @@ def find_majority(k):
 
 class App:
     def __init__(self, window, window_title, video_source=0):
-        
-        global countIn
-        global countOut
+        global header
+        global url
         global countCurrentIn
         global OptionList
         global maximumValue
@@ -111,11 +120,19 @@ class App:
         countCurrentIn -= 1
         self.labelIn.config(text="Todays visitors: "+str(countIn))
         self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
+        self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
+        self.r = requests.post(url, json=self.data, headers=headers)
+        print(self.r.status_code)
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
     def noHumanLeaving(self):
         global countOut
         global countCurrentIn
         countOut -= 1
         countCurrentIn += 1
+        self.data = [{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
+        self.r = requests.post(url, json=self.data, headers=headers)
+        print(self.r.status_code)
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
         self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))  
     def setMaximum(self):
         global maximumValue
@@ -132,22 +149,22 @@ class App:
         countIn += 1
         countCurrentIn += 1
         self.labelIn.config(text="Todays visitors: "+str(countIn))
-        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))   
+        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
+        self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
+        self.r = requests.post(url, json=self.data, headers=headers)
+        print(self.r.status_code)
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
     def countOut(self):
         global countOut
         global countCurrentIn
         countOut += 1
         if (countCurrentIn >0):
             countCurrentIn -= 1
-        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))  
-    def correctCurrentlyPlus(self):
-        global countCurrentIn
-        countCurrentIn += 1
         self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
-    def correctCurrentlyMinus(self):
-        global countCurrentIn
-        countCurrentIn -= 1
-        self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))
+        self.data = [{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
+        self.r = requests.post(url, json=self.data, headers=headers)
+        print(self.r.status_code)
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
     def resetNumbers(self):
         global countIn
         global countOut
@@ -156,15 +173,19 @@ class App:
         countOut = countIn
         countCurrentIn = 0
         self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
+        self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
+        self.r = requests.post(url, json=self.data, headers=headers)
+        print(self.r.status_code)
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
     def update(self):
         global avg
         global xvalues
         global motion
-        global countIn
-        global countOut
-        global countCurrentIn
         global OptionList
         global buzzer
+        global countCurrentIn
+        global countIn
+        global countOut
         global maximumValue
         OptionList = ["from left to right", "from right to left", "from up to down", "from down to up"]
         
@@ -233,18 +254,8 @@ class App:
                 #self.snapshot()
                 if val == 1 and times >= 10:
                     self.countIn()
-                    self.labelIn.config(text="In: "+str(countIn))
-                    countCurrentIn += 1
-                    self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
-                    self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
                 else:
                     self.countOut()
-                    self.labelOut.config(text="Out: "+str(countOut))
-                    if (countCurrentIn >0):
-                        countCurrentIn -= 1
-                        self.labelCurrentIn.config(text="Currently inside: "+str(countCurrentIn))
-                    self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
-
             xvalues = list()
             motion = list()
         if ret:
