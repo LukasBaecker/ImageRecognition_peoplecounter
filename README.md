@@ -1,3 +1,6 @@
+![Alt text](./people_counter.svg)
+<img src="./people_counter.svg">
+
 # ImageRecognition_peoplecounter
 
 The guiCV.py file is the current project-file that will run a scanner with CV2 and saves data to csv and as jpg.
