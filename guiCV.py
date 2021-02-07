@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import yaml
 import tkinter
 import RPi.GPIO as GPIO
@@ -24,15 +25,15 @@ GPIO.setup(buzzer,GPIO.OUT)
 #opensensemap setup
 headers = {'content-type': 'application/json'}
 url = 'https://api.opensensemap.org/boxes/'+senseboxVars['senseBox_id']+'/data'
-
+print(senseboxVars)
 #varibles for counting
 avg = None
 xvalues = list()
 motion = list()
-countIn = 0
+countIn = senseboxVars['initial_current_inside']
 countOut = 0
-countCurrentIn = 0
-maximumValue = 10
+countCurrentIn = senseboxVars['initial_current_inside']
+maximumValue = senseboxVars['initial_maximum_personnumber']
 #with open('SavedVisitorNumbers.csv', mode='w') as csv_file:
  #   fieldnames = ['Date', 'Time', 'Visitors']
   #  writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
