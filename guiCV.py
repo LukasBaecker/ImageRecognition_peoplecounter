@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import yaml
 import tkinter
 import RPi.GPIO as GPIO
@@ -11,7 +11,7 @@ import time
 import requests
 import json
 #load env variables from yaml file
-with open(r'setupCVGeo.yaml') as file:
+with open(r'setupCVGemenweg.yaml') as file:
     senseboxVars = yaml.load(file, Loader=yaml.FullLoader)
 
 #Disable warnings (optional)
@@ -62,7 +62,7 @@ class App:
         global OptionList
         global maximumValue
         self.csv_file= open('./saved_data/SavedVisitorNumbers_'+time.strftime("%d-%m-%Y")+'.csv', mode='w')
-        self.fieldnames = ['Date', 'Time', 'Visitors']
+        self.fieldnames = ['Date', 'Time', 'Current Visitors', 'Total Visitors']
         self.writer = csv.DictWriter(self.csv_file, fieldnames=self.fieldnames)
         self.writer.writeheader()
         self.window = window
@@ -124,7 +124,7 @@ class App:
         self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
         self.r = requests.post(url, json=self.data, headers=headers)
         print(self.r.status_code)
-        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Current Visitors': countCurrentIn, 'Total Visitors': countIn})
     def noHumanLeaving(self):
         global countOut
         global countCurrentIn
@@ -133,7 +133,7 @@ class App:
         self.data = [{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
         self.r = requests.post(url, json=self.data, headers=headers)
         print(self.r.status_code)
-        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Current Visitors': countCurrentIn, 'Total Visitors': countIn})
         self.labelCurrentIn.config(text="currently inside: "+str(countCurrentIn))  
     def setMaximum(self):
         global maximumValue
@@ -154,7 +154,7 @@ class App:
         self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
         self.r = requests.post(url, json=self.data, headers=headers)
         print(self.r.status_code)
-        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Current Visitors': countCurrentIn, 'Total Visitors': countIn})
     def countOut(self):
         global countOut
         global countCurrentIn
@@ -165,7 +165,7 @@ class App:
         self.data = [{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
         self.r = requests.post(url, json=self.data, headers=headers)
         print(self.r.status_code)
-        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Current Visitors': countCurrentIn, 'Total Visitors': countIn})
     def resetNumbers(self):
         global countIn
         global countOut
@@ -177,7 +177,7 @@ class App:
         self.data = [{"sensor":senseboxVars['total_num_people_id'], "value": countIn},{"sensor":senseboxVars['current_people_id'], "value":countCurrentIn}]
         self.r = requests.post(url, json=self.data, headers=headers)
         print(self.r.status_code)
-        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Visitors': countCurrentIn})
+        self.writer.writerow({'Date': time.strftime("%d-%m-%Y"),'Time': time.strftime("%H-%M-%S"), 'Current Visitors': countCurrentIn, 'Total Visitors': countIn})
     def update(self):
         global avg
         global xvalues
